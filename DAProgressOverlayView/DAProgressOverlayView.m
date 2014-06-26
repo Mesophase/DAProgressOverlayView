@@ -17,7 +17,7 @@ typedef enum {
 @interface DAProgressOverlayView ()
 
 @property (assign, nonatomic) DAProgressOverlayViewState state;
-@property (assign, nonatomic) CGFloat animationProggress;
+@property (assign, nonatomic) CGFloat animationProgress;
 @property (strong, nonatomic) NSTimer *timer;
 
 @end
@@ -55,7 +55,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     self.outerRadiusRatio = 0.7;
     self.innerRadiusRatio = 0.6;
     self.overlayColor = [UIColor colorWithRed:0. green:0. blue:0. alpha:0.5];
-    self.animationProggress = 0.;
+    self.animationProgress = 0.;
     self.stateChangeAnimationDuration = 0.25;
     self.triggersDownloadDidFinishAnimationAutomatically = YES;
 }
@@ -65,14 +65,14 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 - (void)displayOperationDidFinishAnimation
 {
     self.state = DAProgressOverlayViewStateOperationFinished;
-    self.animationProggress = 0.;
+    self.animationProgress = 0.;
     self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
 }
 
 - (void)displayOperationWillTriggerAnimation
 {
     self.state = DAProgressOverlayViewStateWaiting;
-    self.animationProggress = 0.;
+    self.animationProgress = 0.;
     self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
 }
 
@@ -158,8 +158,8 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat radius = MIN(width, height) / 2. * self.innerRadiusRatio;
     switch (self.state) {
-        case DAProgressOverlayViewStateWaiting: return radius * self.animationProggress;
-        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProggress;
+        case DAProgressOverlayViewStateWaiting: return radius * self.animationProgress;
+        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
         default: return radius;
     }
 }
@@ -170,22 +170,24 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat radius = MIN(width, height) / 2. * self.outerRadiusRatio;
     switch (self.state) {
-        case DAProgressOverlayViewStateWaiting: return radius * self.animationProggress;
-        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProggress;
+        case DAProgressOverlayViewStateWaiting: return radius * self.animationProgress;
+        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
         default: return radius;
     }
 }
 
 - (void)update
 {
-    CGFloat animationProggress = self.animationProggress + DAUpdateUIFrequency / self.stateChangeAnimationDuration;
-    if (animationProggress >= 1.) {
-        self.animationProggress = 1.;
+    CGFloat animationProgress = self.animationProgress + DAUpdateUIFrequency / self.stateChangeAnimationDuration;
+    if (animationProgress >= 1.) {
+        self.animationProgress = 1.;
         [self.timer invalidate];
     } else {
-        self.animationProggress = animationProggress;
+        self.animationProgress = animationProgress;
     }
     [self setNeedsDisplay];
 }
+
+
 
 @end
