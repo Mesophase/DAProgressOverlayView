@@ -7,6 +7,11 @@
 //
 
 #import "DAProgressOverlayView.h"
+#import <tgmath.h>
+
+#ifndef LIMIT
+#define LIMIT(X, A, B) MAX(A, MIN(X, B))
+#endif
 
 typedef enum {
     DAProgressOverlayViewStateWaiting = 0,
@@ -87,8 +92,6 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat innerRadius = [self innerRadius];
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(context, width / 2., height / 2.);
-    CGContextScaleCTM(context, 1., -1.);
-    CGContextSetRGBFillColor(context, 0., 0., 0., 0.5);
     CGContextSetFillColorWithColor(context, self.overlayColor.CGColor);
     
     CGMutablePathRef path0 = CGPathCreateMutable();
@@ -114,11 +117,11 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGPathRelease(path1);
     
     if (_progress < 1.) {
-        CGFloat angle = 360. - (360. * _progress);
-        CGAffineTransform transform = CGAffineTransformMakeRotation(M_PI_2);
+        CGFloat angle = (360. * _progress);
+        CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         CGMutablePathRef path2 = CGPathCreateMutable();
         CGPathMoveToPoint(path2, &transform, innerRadius, 0.);
-        CGPathAddArc(path2, &transform, 0., 0., innerRadius, 0., angle / 180. * M_PI, 0.);
+        CGPathAddArc(path2, &transform, 0., 0., innerRadius, 0., angle / 180. * M_PI, YES);
         CGPathAddLineToPoint(path2, &transform, 0., 0.);
         CGPathAddLineToPoint(path2, &transform, innerRadius, 0.);
         CGContextAddPath(context, path2);
@@ -129,18 +132,18 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 - (void)setInnerRadiusRatio:(CGFloat)innerRadiusRatio
 {
-    _innerRadiusRatio = (innerRadiusRatio < 0.) ? 0. : (innerRadiusRatio > 1.) ? 1. : innerRadiusRatio;
+    _innerRadiusRatio = LIMIT(innerRadiusRatio, 0.0f, 1.0f);
 }
 
 - (void)setOuterRadiusRatio:(CGFloat)outerRadiusRatio
 {
-    _outerRadiusRatio = (outerRadiusRatio < 0.) ? 0. : (outerRadiusRatio > 1.) ? 1. : outerRadiusRatio;
+    _outerRadiusRatio = LIMIT(outerRadiusRatio, 0.0f, 1.0f);
 }
 
 - (void)setProgress:(CGFloat)progress
 {
     if (_progress != progress) {
-        _progress = (progress < 0.) ? 0. : (progress > 1.) ? 1. : progress;
+        _progress = LIMIT(progress, 0.0f, 1.0f);
         if (progress > 0. && progress < 1.) {
             self.state = DAProgressOverlayViewStateOperationInProgress;
             [self setNeedsDisplay];
