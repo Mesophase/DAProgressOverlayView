@@ -23,6 +23,7 @@ typedef enum {
 
 @property (assign, nonatomic) DAProgressOverlayViewState state;
 @property (assign, nonatomic) CGFloat animationProgress;
+@property (assign, nonatomic) CGFloat progressAnimationStart;
 @property (strong, nonatomic) NSTimer *timer;
 
 @end
@@ -80,19 +81,13 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 - (void)displayOperationWillTriggerAnimation
 {
     self.state = DAProgressOverlayViewStateWaiting;
-    self.animationProgress = 0.0f;
-    [self.timer invalidate];
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
-    [self update];
+    [self startUpdateTimer];
 }
 
 - (void)displayOperationDidFinishAnimation
 {
     self.state = DAProgressOverlayViewStateOperationFinished;
-    self.animationProgress = 0.0f;
-    [self.timer invalidate];
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
-    [self update];
+    [self startUpdateTimer];
 }
 
 - (void)setDrawIcon:(BOOL)drawIcon {
@@ -142,15 +137,14 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
     CGFloat iconRadius = [self iconRadius];
 
-    if (0.0f == _progress)
-    {
+    CGFloat visibleProgress = _progressAnimationStart + self.animationProgress * (_progress - _progressAnimationStart);
+    if (0.0f == visibleProgress) {
         CGContextFillEllipseInRect(context, CGRectMake(-innerRadius, -innerRadius, innerRadius * 2.0f, innerRadius * 2.0f));
     }
-    else if (_progress >= 1.0f)
-    {
+    else if (visibleProgress >= 1.0f) {
         CGContextFillEllipseInRect(context, CGRectMake(-iconRadius, -iconRadius, iconRadius * 2.0f, iconRadius * 2.0f));
     } else {
-        CGFloat angle = (360. * _progress);
+        CGFloat angle = (360. * visibleProgress);
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         CGMutablePathRef path2 = CGPathCreateMutable();
         CGPathMoveToPoint(path2, &transform, innerRadius, 0.);
@@ -163,10 +157,9 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         CGPathRelease(path2);
     }
 
-    if (self.iconDrawingBlock)
-    {
+    if (self.iconDrawingBlock) {
         CGContextSaveGState(context);
-        self.iconDrawingBlock(context, CGRectMake(-iconRadius/2.0, -iconRadius/2.0, iconRadius, iconRadius), fillColor);
+        self.iconDrawingBlock(context, CGRectMake(-iconRadius / 2.0, -iconRadius / 2.0, iconRadius, iconRadius), fillColor);
         CGContextRestoreGState(context);
     }
 }
@@ -198,12 +191,13 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 - (void)setProgress:(CGFloat)progress
 {
     if (_progress != progress) {
+        self.progressAnimationStart = _progress;
         _progress = LIMIT(progress, 0.0f, 1.0f);
         if (progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
             [self displayOperationDidFinishAnimation];
         } else {
             self.state = DAProgressOverlayViewStateOperationInProgress;
-            [self setNeedsDisplay];
+            [self startUpdateTimer];
         }
     }
 }
@@ -259,6 +253,14 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         default:
             return radius;
     }
+}
+
+- (void)startUpdateTimer
+{
+    self.animationProgress = 0.0f;
+    [self.timer invalidate];
+    self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
+    [self update];
 }
 
 - (void)update
