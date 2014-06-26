@@ -95,6 +95,14 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     [self update];
 }
 
+- (void)setDrawIcon:(BOOL)drawIcon {
+    [self willChangeValueForKey:@"drawIcon"];
+    _drawIcon = drawIcon;
+    [self didChangeValueForKey:@"drawIcon"];
+
+    [self update];
+}
+
 #pragma mark * Overwritten methods
 
 - (void)drawRect:(CGRect)rect
@@ -219,18 +227,22 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 - (CGFloat)iconRadius
 {
-    CGFloat width = CGRectGetWidth(self.bounds);
-    CGFloat height = CGRectGetHeight(self.bounds);
-    CGFloat ratio = self.innerRadiusRatio - (self.outerRadiusRatio - self.innerRadiusRatio);
-    CGFloat radius = MIN(width, height) / 2. * ratio;
+    if (self.drawIcon) {
+        CGFloat width = CGRectGetWidth(self.bounds);
+        CGFloat height = CGRectGetHeight(self.bounds);
+        CGFloat ratio = self.innerRadiusRatio - (self.outerRadiusRatio - self.innerRadiusRatio);
+        CGFloat radius = MIN(width, height) / 2. * ratio;
 
-    switch (self.state) {
-        default:
-            return radius;
-        case DAProgressOverlayViewStateWaiting:
-            return radius * self.animationProgress;
-        case DAProgressOverlayViewStateOperationFinished:
-            return radius * (1.0f - self.animationProgress);
+        switch (self.state) {
+            default:
+                return radius;
+            case DAProgressOverlayViewStateWaiting:
+                return radius * self.animationProgress;
+            case DAProgressOverlayViewStateOperationFinished:
+                return radius * (1.0f - self.animationProgress);
+        }
+    } else {
+        return 0.0f;
     }
 }
 
