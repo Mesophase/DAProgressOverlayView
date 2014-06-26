@@ -14,9 +14,10 @@
 #endif
 
 typedef enum {
-    DAProgressOverlayViewStateWaiting = 0,
-    DAProgressOverlayViewStateOperationInProgress = 1,
-    DAProgressOverlayViewStateOperationFinished = 2
+    DAProgressOverlayViewStateUnknown,
+    DAProgressOverlayViewStateWaiting,
+    DAProgressOverlayViewStateOperationInProgress,
+    DAProgressOverlayViewStateOperationFinished
 } DAProgressOverlayViewState;
 
 @interface DAProgressOverlayView ()
@@ -78,16 +79,23 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 #pragma mark - Public
 
-- (void)displayOperationWillTriggerAnimation
-{
-    self.state = DAProgressOverlayViewStateWaiting;
-    [self startUpdateTimer];
+- (void)displayOperationWillTriggerAnimation {
+    if (self.state < DAProgressOverlayViewStateOperationInProgress || DAProgressOverlayViewStateOperationFinished <= self.state) {
+        [self setState:DAProgressOverlayViewStateWaiting animated:YES];
+    }
 }
 
-- (void)displayOperationDidFinishAnimation
-{
-    self.state = DAProgressOverlayViewStateOperationFinished;
-    [self startUpdateTimer];
+- (void)displayOperationDidFinishAnimation {
+    [self setState:DAProgressOverlayViewStateOperationFinished animated:YES];
+}
+
+- (void)setState:(DAProgressOverlayViewState)state animated:(BOOL)animated {
+    if (state != _state) {
+        _state = state;
+        if (animated) {
+            [self startUpdateTimer];
+        }
+    }
 }
 
 - (void)setDrawIcon:(BOOL)drawIcon {
