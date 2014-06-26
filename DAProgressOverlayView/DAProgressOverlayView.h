@@ -34,7 +34,7 @@
 @property (assign, nonatomic) CGFloat progress;
 
 /**
- The duration for animations displayed after calling `displayOperationWillTriggerAnimation` and `displayOperationDidFinishAnimation` methods.
+ The duration for animations displayed after calling `show:animated:` and `displayOperationDidFinishAnimation` methods.
  This is 0.25 by default.
  */
 @property (assign, nonatomic) CGFloat stateChangeAnimationDuration;
@@ -45,10 +45,20 @@
  */
 @property (assign, nonatomic) BOOL triggersDownloadDidFinishAnimationAutomatically;
 
+@property(nonatomic) BOOL isShowing;
+
 /**
  If you only update progress in chunks, use this method instead of the `progress` property to get a smooth animation.
 */
 - (void)setProgress:(CGFloat)targetProgress animated:(BOOL)animated;
+
+/**
+When showing, changes radiuses of the inner and outer circles from zero to the corresponding values,
+calculated from 'innerRadiusRatio' and 'outerRadiusRatio' properties.
+
+When hiding, makes the outer faded out circle radius expand until it circumscribes the DAProgressOverlayView bounds
+*/
+- (void)show:(BOOL)show animated:(BOOL)animated;
 
 /**
  Assignable drawing block for showing an icon in the overlay view's center.
@@ -56,15 +66,5 @@
 typedef void (^DADrawingBlock)(CGContextRef ctx, CGRect rect, CGColorRef fillColor);
 @property(nonatomic, copy) DADrawingBlock iconDrawingBlock;
 @property(nonatomic) BOOL drawIcon;
-
-/**
- Changes radiuses of the inner and outer circles from zero to the corresponding values, calculated from 'innerRadiusRatio' and 'outerRadiusRatio' properties.
- */
-- (void)displayOperationWillTriggerAnimation;
-
-/**
-makes the outer faded out circle radius expand until it circumscribes the DAProgressOverlayView bounds
-*/
-- (void)displayOperationDidFinishAnimation;
 
 @end

@@ -33,7 +33,7 @@ typedef enum {
 CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 
-@implementation DAProgressOverlayView
+@implementation DAProgressOverlayView {BOOL _isShowing;}
 
 #pragma mark - Initialization
 
@@ -79,14 +79,22 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 #pragma mark - Public
 
-- (void)displayOperationWillTriggerAnimation {
-    if (self.state < DAProgressOverlayViewStateOperationInProgress || DAProgressOverlayViewStateOperationFinished <= self.state) {
-        [self setState:DAProgressOverlayViewStateWaiting animated:YES];
+- (void)show:(BOOL)show animated:(BOOL)animated {
+    if (show) {
+        BOOL notYetInProgress = self.state < DAProgressOverlayViewStateOperationInProgress;
+        if (!self.isShowing) {
+            self.progress = 0;
+        }
+        BOOL alreadyFinished = DAProgressOverlayViewStateOperationFinished <= self.state;
+        if (notYetInProgress || alreadyFinished) {
+            [self setState:DAProgressOverlayViewStateWaiting animated:animated];
+        }
     }
-}
+    else if (self.state >= DAProgressOverlayViewStateUnknown) {
+        [self setState:DAProgressOverlayViewStateOperationFinished animated:animated];
+    }
 
-- (void)displayOperationDidFinishAnimation {
-    [self setState:DAProgressOverlayViewStateOperationFinished animated:YES];
+    self.isShowing = show;
 }
 
 - (void)setState:(DAProgressOverlayViewState)state animated:(BOOL)animated {
@@ -112,7 +120,10 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 - (void)drawRect:(CGRect)rect
 {
-    
+    if (self.state == DAProgressOverlayViewStateUnknown) {
+        return;
+    } // else
+
     CGFloat width = CGRectGetWidth(self.bounds);
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat outerRadius = [self outerRadius];
@@ -131,19 +142,18 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGPathAddArc(path0, NULL, 0., 0., outerRadius, M_PI, 0., 1.);
     CGPathAddLineToPoint(path0, NULL, width / 2., 0.);
     CGPathCloseSubpath(path0);
-    
+
     CGMutablePathRef path1 = CGPathCreateMutable();
     CGAffineTransform rotation = CGAffineTransformMakeScale(1., -1.);
     CGPathAddPath(path1, &rotation, path0);
-    
+
     CGContextAddPath(context, path0);
     CGContextFillPath(context);
     CGPathRelease(path0);
-    
+
     CGContextAddPath(context, path1);
     CGContextFillPath(context);
     CGPathRelease(path1);
-    
 
     CGFloat iconRadius = [self iconRadius];
 
@@ -207,24 +217,24 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         self.progressAnimationStart = LIMIT(targetProgress, 0.0f, 1.0f);;
     }
 
-    self.progress = targetProgress;
+    if (_progress != targetProgress) {
+        [self willChangeValueForKey:@"progress"];
+        _progress = LIMIT(targetProgress, 0.0f, 1.0f);
+        [self didChangeValueForKey:@"progress"];
+    }
 
-    if (animated)
-    {
+    if (_progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
+        [self show:NO animated:animated];
+    } else if (animated) {
         [self startUpdateTimer];
+    } else {
+        [self update];
     }
 }
 
 - (void)setProgress:(CGFloat)progress
 {
-    if (_progress != progress) {
-        _progress = LIMIT(progress, 0.0f, 1.0f);
-        if (progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
-            [self displayOperationDidFinishAnimation];
-        }
-
-        [self setNeedsDisplay];
-    }
+    [self setProgress:progress animated:NO];
 }
 
 #pragma mark - Private
