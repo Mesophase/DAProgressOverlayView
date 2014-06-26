@@ -63,22 +63,36 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     self.animationProgress = 0.;
     self.stateChangeAnimationDuration = 0.25;
     self.triggersDownloadDidFinishAnimationAutomatically = YES;
+    self.iconDrawingBlock = ^(CGContextRef ctx, CGRect rect, CGColorRef fillColor) {
+        CGRect barRect = CGRectApplyAffineTransform(rect, CGAffineTransformMakeScale(0.8, 0.2));
+        UIBezierPath* path = [UIBezierPath bezierPathWithRoundedRect:barRect cornerRadius:(CGFloat) (rect.size.width * 0.05)];
+        CGContextRotateCTM(ctx, M_PI_4);
+        CGContextAddPath(ctx, path.CGPath);
+        CGContextRotateCTM(ctx, M_PI_2);
+        CGContextAddPath(ctx, path.CGPath);
+        CGContextClip(ctx);
+        CGContextClearRect(ctx, rect);
+    };
 }
 
 #pragma mark - Public
 
-- (void)displayOperationDidFinishAnimation
-{
-    self.state = DAProgressOverlayViewStateOperationFinished;
-    self.animationProgress = 0.;
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
-}
-
 - (void)displayOperationWillTriggerAnimation
 {
     self.state = DAProgressOverlayViewStateWaiting;
-    self.animationProgress = 0.;
+    self.animationProgress = 0.0f;
+    [self.timer invalidate];
     self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
+    [self update];
+}
+
+- (void)displayOperationDidFinishAnimation
+{
+    self.state = DAProgressOverlayViewStateOperationFinished;
+    self.animationProgress = 0.0f;
+    [self.timer invalidate];
+    self.timer = [NSTimer scheduledTimerWithTimeInterval:DAUpdateUIFrequency target:self selector:@selector(update) userInfo:nil repeats:YES];
+    [self update];
 }
 
 #pragma mark * Overwritten methods
@@ -92,8 +106,9 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat innerRadius = [self innerRadius];
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(context, width / 2., height / 2.);
-    CGContextSetFillColorWithColor(context, self.overlayColor.CGColor);
-    
+    CGColorRef fillColor = [self fillColor];
+    CGContextSetFillColorWithColor(context, fillColor);
+
     CGMutablePathRef path0 = CGPathCreateMutable();
     CGPathMoveToPoint(path0, NULL, width / 2., 0.);
     CGPathAddLineToPoint(path0, NULL, width / 2., height / 2.);
@@ -116,17 +131,49 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGContextFillPath(context);
     CGPathRelease(path1);
     
-    if (_progress < 1.) {
+
+    CGFloat iconRadius = [self iconRadius];
+
+    if (0.0f == _progress)
+    {
+        CGContextFillEllipseInRect(context, CGRectMake(-innerRadius, -innerRadius, innerRadius * 2.0f, innerRadius * 2.0f));
+    }
+    else if (_progress >= 1.0f)
+    {
+        CGContextFillEllipseInRect(context, CGRectMake(-iconRadius, -iconRadius, iconRadius * 2.0f, iconRadius * 2.0f));
+    } else {
         CGFloat angle = (360. * _progress);
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         CGMutablePathRef path2 = CGPathCreateMutable();
         CGPathMoveToPoint(path2, &transform, innerRadius, 0.);
         CGPathAddArc(path2, &transform, 0., 0., innerRadius, 0., angle / 180. * M_PI, YES);
-        CGPathAddLineToPoint(path2, &transform, 0., 0.);
+        CGPathAddLineToPoint(path2, &transform, iconRadius * cos(angle * M_PI / 180.0), iconRadius * sin(angle * M_PI / 180.0));
+        CGPathAddArc(path2, &transform, 0., 0., iconRadius, angle / 180. * M_PI, 0, YES);
         CGPathAddLineToPoint(path2, &transform, innerRadius, 0.);
         CGContextAddPath(context, path2);
         CGContextFillPath(context);
         CGPathRelease(path2);
+    }
+
+    if (self.iconDrawingBlock)
+    {
+        CGContextSaveGState(context);
+        self.iconDrawingBlock(context, CGRectMake(-iconRadius/2.0, -iconRadius/2.0, iconRadius, iconRadius), fillColor);
+        CGContextRestoreGState(context);
+    }
+}
+
+- (CGColorRef)fillColor {
+    CGFloat alpha = CGColorGetAlpha(self.overlayColor.CGColor);
+
+    switch (self.state) {
+        case DAProgressOverlayViewStateWaiting:
+            return [self.overlayColor colorWithAlphaComponent:self.animationProgress * alpha].CGColor;
+        default:
+        case DAProgressOverlayViewStateOperationInProgress:
+            return self.overlayColor.CGColor;
+        case DAProgressOverlayViewStateOperationFinished:
+            return [self.overlayColor colorWithAlphaComponent:alpha - self.animationProgress * alpha].CGColor;
     }
 }
 
@@ -144,12 +191,12 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 {
     if (_progress != progress) {
         _progress = LIMIT(progress, 0.0f, 1.0f);
-        if (progress > 0. && progress < 1.) {
+        if (progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
+            [self displayOperationDidFinishAnimation];
+        } else {
             self.state = DAProgressOverlayViewStateOperationInProgress;
             [self setNeedsDisplay];
-        } else if (progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
-            [self displayOperationDidFinishAnimation];
-        }        
+        }
     }
 }
 
@@ -161,9 +208,29 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat radius = MIN(width, height) / 2. * self.innerRadiusRatio;
     switch (self.state) {
-        case DAProgressOverlayViewStateWaiting: return radius * self.animationProgress;
-        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
-        default: return radius;
+        case DAProgressOverlayViewStateWaiting:
+            return radius * self.animationProgress;
+        case DAProgressOverlayViewStateOperationFinished:
+            return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
+        default:
+            return radius;
+    }
+}
+
+- (CGFloat)iconRadius
+{
+    CGFloat width = CGRectGetWidth(self.bounds);
+    CGFloat height = CGRectGetHeight(self.bounds);
+    CGFloat ratio = self.innerRadiusRatio - (self.outerRadiusRatio - self.innerRadiusRatio);
+    CGFloat radius = MIN(width, height) / 2. * ratio;
+
+    switch (self.state) {
+        default:
+            return radius;
+        case DAProgressOverlayViewStateWaiting:
+            return radius * self.animationProgress;
+        case DAProgressOverlayViewStateOperationFinished:
+            return radius * (1.0f - self.animationProgress);
     }
 }
 
@@ -173,9 +240,12 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat radius = MIN(width, height) / 2. * self.outerRadiusRatio;
     switch (self.state) {
-        case DAProgressOverlayViewStateWaiting: return radius * self.animationProgress;
-        case DAProgressOverlayViewStateOperationFinished: return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
-        default: return radius;
+        case DAProgressOverlayViewStateWaiting:
+            return radius * self.animationProgress;
+        case DAProgressOverlayViewStateOperationFinished:
+            return radius + (MAX(width, height) / sqrtf(2.) - radius) * self.animationProgress;
+        default:
+            return radius;
     }
 }
 

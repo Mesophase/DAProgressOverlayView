@@ -46,13 +46,20 @@
 @property (assign, nonatomic) BOOL triggersDownloadDidFinishAnimationAutomatically;
 
 /**
- makes the outer faded out circle radius expand until it circumscribes the DAProgressOverlayView bounds
- */
-- (void)displayOperationDidFinishAnimation;
+ Assignable drawing block for showing an icon in the overlay view's center.
+*/
+typedef void (^DADrawingBlock)(CGContextRef ctx, CGRect rect, CGColorRef fillColor);
+@property(nonatomic, copy) DADrawingBlock iconDrawingBlock;
+@property(nonatomic) BOOL drawIcon;
 
 /**
  Changes radiuses of the inner and outer circles from zero to the corresponding values, calculated from 'innerRadiusRatio' and 'outerRadiusRatio' properties.
  */
 - (void)displayOperationWillTriggerAnimation;
+
+/**
+makes the outer faded out circle radius expand until it circumscribes the DAProgressOverlayView bounds
+*/
+- (void)displayOperationDidFinishAnimation;
 
 @end
