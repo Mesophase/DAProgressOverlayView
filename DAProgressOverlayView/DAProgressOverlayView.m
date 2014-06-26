@@ -94,6 +94,8 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         _state = state;
         if (animated) {
             [self startUpdateTimer];
+        } else {
+            [self update];
         }
     }
 }
@@ -196,17 +198,32 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     _outerRadiusRatio = LIMIT(outerRadiusRatio, 0.0f, 1.0f);
 }
 
+- (void)setProgress:(CGFloat)targetProgress animated:(BOOL)animated
+{
+    if (animated) {
+        self.state = DAProgressOverlayViewStateOperationInProgress;
+        self.progressAnimationStart = self.progress;
+    } else {
+        self.progressAnimationStart = LIMIT(targetProgress, 0.0f, 1.0f);;
+    }
+
+    self.progress = targetProgress;
+
+    if (animated)
+    {
+        [self startUpdateTimer];
+    }
+}
+
 - (void)setProgress:(CGFloat)progress
 {
     if (_progress != progress) {
-        self.progressAnimationStart = _progress;
         _progress = LIMIT(progress, 0.0f, 1.0f);
         if (progress == 1. && self.triggersDownloadDidFinishAnimationAutomatically) {
             [self displayOperationDidFinishAnimation];
-        } else {
-            self.state = DAProgressOverlayViewStateOperationInProgress;
-            [self startUpdateTimer];
         }
+
+        [self setNeedsDisplay];
     }
 }
 

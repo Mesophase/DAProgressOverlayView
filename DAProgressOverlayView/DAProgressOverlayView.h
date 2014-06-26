@@ -46,6 +46,11 @@
 @property (assign, nonatomic) BOOL triggersDownloadDidFinishAnimationAutomatically;
 
 /**
+ If you only update progress in chunks, use this method instead of the `progress` property to get a smooth animation.
+*/
+- (void)setProgress:(CGFloat)targetProgress animated:(BOOL)animated;
+
+/**
  Assignable drawing block for showing an icon in the overlay view's center.
 */
 typedef void (^DADrawingBlock)(CGContextRef ctx, CGRect rect, CGColorRef fillColor);
