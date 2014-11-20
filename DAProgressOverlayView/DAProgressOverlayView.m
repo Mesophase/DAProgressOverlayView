@@ -65,6 +65,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     self.animationProgress = 0.;
     self.stateChangeAnimationDuration = 0.25;
     self.triggersDownloadDidFinishAnimationAutomatically = YES;
+    self.isShowing = NO;
     self.iconDrawingBlock = ^(CGContextRef ctx, CGRect rect, CGColorRef fillColor) {
         CGRect barRect = CGRectApplyAffineTransform(rect, CGAffineTransformMakeScale(0.8, 0.2));
         UIBezierPath* path = [UIBezierPath bezierPathWithRoundedRect:barRect cornerRadius:(CGFloat) (rect.size.width * 0.05)];
@@ -75,6 +76,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         CGContextClip(ctx);
         CGContextClearRect(ctx, rect);
     };
+    self.drawIcon = NO;
 }
 
 #pragma mark - Public
