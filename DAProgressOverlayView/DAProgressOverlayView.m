@@ -83,6 +83,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
 - (void)show:(BOOL)show animated:(BOOL)animated {
     if (show) {
+        [self setHidden:NO];
         BOOL notYetInProgress = self.state < DAProgressOverlayViewStateOperationInProgress;
         if (!self.isShowing) {
             self.progress = 0;
@@ -105,6 +106,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         if (animated) {
             [self startUpdateTimer];
         } else {
+            self.animationProgress = 1.0f;
             [self update];
         }
     }
@@ -157,7 +159,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGContextFillPath(context);
     CGPathRelease(path1);
 
-    CGFloat iconRadius = [self iconRadius];
+    CGFloat iconRadius = 0.f;//[self iconRadius];
 
     CGFloat visibleProgress = _progressAnimationStart + self.animationProgress * (_progress - _progressAnimationStart);
     if (0.0f == visibleProgress) {
@@ -181,7 +183,9 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 
     if (self.iconDrawingBlock) {
         CGContextSaveGState(context);
-        self.iconDrawingBlock(context, CGRectMake(-iconRadius / 2.0, -iconRadius / 2.0, iconRadius, iconRadius), fillColor);
+        iconRadius = [self iconRadius];
+//        self.iconDrawingBlock(context, CGRectMake(-iconRadius / 2.0, -iconRadius / 2.0, iconRadius, iconRadius), fillColor);
+        self.iconDrawingBlock(context, CGRectMake(-iconRadius, -iconRadius, iconRadius*2.f, iconRadius*2.f), fillColor);
         CGContextRestoreGState(context);
     }
 }
@@ -306,6 +310,9 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     if (animationProgress >= 1.) {
         self.animationProgress = 1.;
         [self.timer invalidate];
+        if (self.state == DAProgressOverlayViewStateOperationFinished) {
+            [self setHidden:YES];
+        }
     } else {
         self.animationProgress = animationProgress;
     }
