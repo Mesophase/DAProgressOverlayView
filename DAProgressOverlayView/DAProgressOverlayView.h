@@ -58,7 +58,9 @@ calculated from 'innerRadiusRatio' and 'outerRadiusRatio' properties.
 
 When hiding, makes the outer faded out circle radius expand until it circumscribes the DAProgressOverlayView bounds
 */
+typedef void (^DAAnimationCompletionBlock)();
 - (void)show:(BOOL)show animated:(BOOL)animated;
+- (void)show:(BOOL)show animated:(BOOL)animated withCompletionBlock:(DAAnimationCompletionBlock)block;
 
 /**
  Assignable drawing block for showing an icon in the overlay view's center.

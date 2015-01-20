@@ -26,6 +26,7 @@ typedef enum {
 @property (assign, nonatomic) CGFloat animationProgress;
 @property (assign, nonatomic) CGFloat progressAnimationStart;
 @property (strong, nonatomic) NSTimer *timer;
+@property (strong, nonatomic) DAAnimationCompletionBlock animationCompletionBlock;
 
 @end
 
@@ -82,6 +83,12 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
 #pragma mark - Public
 
 - (void)show:(BOOL)show animated:(BOOL)animated {
+    [self show:show animated:animated withCompletionBlock:nil];
+}
+
+- (void)show:(BOOL)show animated:(BOOL)animated withCompletionBlock:(DAAnimationCompletionBlock)block {
+    self.animationCompletionBlock = block;
+
     if (show) {
         [self setHidden:NO];
         BOOL notYetInProgress = self.state < DAProgressOverlayViewStateOperationInProgress;
@@ -312,6 +319,11 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
         [self.timer invalidate];
         if (self.state == DAProgressOverlayViewStateOperationFinished) {
             [self setHidden:YES];
+
+            if (self.animationCompletionBlock != nil) {
+                self.animationCompletionBlock();
+                self.animationCompletionBlock = nil;
+            }
         }
     } else {
         self.animationProgress = animationProgress;
