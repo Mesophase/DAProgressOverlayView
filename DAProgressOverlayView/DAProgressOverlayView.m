@@ -150,7 +150,7 @@ CGFloat const DAUpdateUIFrequency = 1. / 25.;
     CGPathAddLineToPoint(path0, NULL, -width / 2., height / 2.);
     CGPathAddLineToPoint(path0, NULL, -width / 2., 0.);
     CGPathAddLineToPoint(path0, NULL, (cosf(M_PI) * outerRadius), 0.);
-    CGPathAddArc(path0, NULL, 0., 0., outerRadius, M_PI, 0., 1.);
+    CGPathAddArc(path0, NULL, 0., 0., outerRadius, M_PI, 0., YES);
     CGPathAddLineToPoint(path0, NULL, width / 2., 0.);
     CGPathCloseSubpath(path0);
 
